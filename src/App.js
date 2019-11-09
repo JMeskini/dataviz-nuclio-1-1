@@ -15,6 +15,10 @@ import {NumberChart} from "./charts/Number";
 import dataP1 from './datas/partial0';
 import dataP2 from './datas/partial3000';
 import dataP3 from './datas/partial6000';
+import Switch from "@material-ui/core/Switch";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import {HistoryChart} from "./charts/History";
+import d3 from 'd3';
 const data = [...dataP1, ...dataP2, ...dataP3];
 
 
@@ -34,13 +38,15 @@ const useStyles = makeStyles({
 });
 
 function App() {
-  const [filter, setFilter] = useState({year:'2016', hazardous: '-'});
+  const [filter, setFilter] = useState({year:'2016', yearEnabled: false, hazardous: '-'});
   const [filteredDataset, setFilteredDataset] = useState(data);
   const classes = useStyles();
   useEffect(() => {
     let dataset = data;
-    if (filter.year && filter.year.length === 4) { // omit year inputs which do not have 4 digits
-      dataset = dataset.filter(x => ((x.orbital_data || {}).first_observation_date || '').startsWith(filter.year));
+    if (filter.yearEnabled) {
+      if (filter.year && filter.year.length === 4) { // omit year inputs which do not have 4 digits
+        dataset = dataset.filter(x => ((x.orbital_data || {}).first_observation_date || '').startsWith(filter.year));
+      }
     }
     if (filter.hazardous === 'Y') {
       dataset = dataset.filter(x => x.is_potentially_hazardous_asteroid === true);
@@ -56,14 +62,24 @@ function App() {
         <Grid container spacing={3}>
           <Grid lg={12}>
             <div className={classes.filters}>
-              <TextField
+              <FormControlLabel
+                control={
+                <Switch
+                  checked={filter.yearEnabled}
+                  onChange={event => setFilter({...filter, yearEnabled: event.target.checked})}
+                  value="Date Filtering"
+                  inputProps={{ 'aria-label': 'secondary checkbox' }}
+                />}
+                  label="Date Filtering"
+              />
+              {filter.yearEnabled && <TextField
                 id="year-filter"
                 label="Year"
                 type="number"
                 value={filter.year}
                 onChange={event => setFilter({...filter, year: event.target.value})}
                 margin="normal"
-              />
+              />}
               <FormControl className={classes.textFilter}>
                 <InputLabel id="hazardous-filter-label">Hazardous</InputLabel>
                 <Select
@@ -78,6 +94,9 @@ function App() {
                 </Select>
               </FormControl>
             </div>
+          </Grid>
+          <Grid style={{display: !filter.yearEnabled ? 'block' : 'none'}} item xs={12}>
+            <HistoryChart data={filteredDataset} onClick={year => setFilter({...filter, year, yearEnabled: true })}/>
           </Grid>
           <Grid item xs={12} md={6} lg={4}>
             <NumberChart data={filteredDataset} />
